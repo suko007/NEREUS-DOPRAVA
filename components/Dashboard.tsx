@@ -1,9 +1,8 @@
-
 import React, { useContext, useState, FormEvent } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import { UserRole, Ride, User } from '../types';
 import {
-  LogoutIcon, PlusIcon, UserIcon
+  LogoutIcon, PlusIcon, UserIcon, EditIcon, TrashIcon
 } from './common/Icons';
 import { RideCard } from './RideCard';
 import { ProfileModal } from './ProfileModal';
@@ -60,6 +59,70 @@ const RideModal: React.FC<{
   );
 };
 
+const UserEditModal: React.FC<{
+  user: User;
+  onClose: () => void;
+  onSave: (userId: string, name: string, email: string, mobile: string, password?: string) => void;
+}> = ({ user, onClose, onSave }) => {
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email || '');
+  const [mobile, setMobile] = useState(user.mobile || '');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (password !== confirmPassword) {
+      setError('Heslá sa nezhodujú.');
+      return;
+    }
+    
+    onSave(user.id, name, email, mobile, password || undefined);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold mb-4">Upraviť profil: {user.name}</h2>
+          {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4 text-center" role="alert">{error}</div>}
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-slate-700">Meno</label>
+                <input type="text" id="username" value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required />
+              </div>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700">Email</label>
+                <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required />
+              </div>
+              <div>
+                <label htmlFor="mobile" className="block text-sm font-medium text-slate-700">Telefón</label>
+                <input type="tel" id="mobile" value={mobile} onChange={e => setMobile(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700">Nové heslo (nepovinné)</label>
+                <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Ponechajte prázdne pre zachovanie" className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">Potvrdiť nové heslo</label>
+                <input type="password" id="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Zopakujte nové heslo" className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-md transition-colors">Zrušiť</button>
+              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Uložiť zmeny</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 const Dashboard: React.FC = () => {
     const context = useContext(AppContext);
@@ -67,6 +130,8 @@ const Dashboard: React.FC = () => {
     const [isProfileModalOpen, setProfileModalOpen] = useState(false);
     const [editingRide, setEditingRide] = useState<Ride | null>(null);
     const [rideIdToDelete, setRideIdToDelete] = useState<string | null>(null);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [userIdToDelete, setUserIdToDelete] = useState<string | null>(null);
 
     if (!context || !context.currentUser) {
         return <div className="flex items-center justify-center h-screen">Načítava sa...</div>;
@@ -74,13 +139,14 @@ const Dashboard: React.FC = () => {
     
     const { 
         currentUser, users, rides, logout, createRide, updateRide, deleteRide, 
-        addCarToRide, removeCarFromRide, bookSeat, cancelBooking, updateProfilePicture
+        addCarToRide, removeCarFromRide, bookSeat, cancelBooking, updateProfilePicture,
+        updateProfile, deleteUser
     } = context;
     
     const now = new Date();
     const upcomingRides = rides
         .filter(ride => new Date(`${ride.date}T${ride.time || '00:00'}`) >= now)
-        .sort((a, b) => new Date(`${a.date}T${a.time || '00:00'}`).getTime() - new Date(`${b.date}T${b.time || '00:00'}`).getTime());
+        .sort((a, b) => new Date(`${b.date}T${b.time || '00:00'}`).getTime() - new Date(`${a.date}T${a.time || '00:00'}`).getTime());
     const pastRides = rides
         .filter(ride => new Date(`${ride.date}T${ride.time || '00:00'}`) < now)
         .sort((a, b) => new Date(`${b.date}T${b.time || '00:00'}`).getTime() - new Date(`${a.date}T${a.time || '00:00'}`).getTime());
@@ -115,26 +181,57 @@ const Dashboard: React.FC = () => {
         setRideIdToDelete(rideId);
     };
     
-    const handleConfirmDelete = () => {
+    const handleConfirmRideDelete = () => {
       if (rideIdToDelete) {
         deleteRide(rideIdToDelete);
         setRideIdToDelete(null);
       }
     };
 
+    // User Handlers
+    const handleOpenUserEditModal = (user: User) => {
+        setEditingUser(user);
+    };
+    
+    const handleCloseUserEditModal = () => {
+        setEditingUser(null);
+    };
+
+    const handleSaveUser = (userId: string, name: string, email: string, mobile: string, password?: string) => {
+        updateProfile(userId, name, email, mobile, password);
+        handleCloseUserEditModal();
+    };
+    
+    const handleDeleteUser = (userId: string) => {
+        setUserIdToDelete(userId);
+    };
+
+    const handleConfirmUserDelete = () => {
+        if (userIdToDelete) {
+            deleteUser(userIdToDelete);
+            setUserIdToDelete(null);
+        }
+    };
+    
     const handleCancelDelete = () => {
       setRideIdToDelete(null);
+      setUserIdToDelete(null);
     };
 
     const rideForDeletion = rideIdToDelete ? rides.find(r => r.id === rideIdToDelete) : null;
+    const userForDeletion = userIdToDelete ? users.find(u => u.id === userIdToDelete) : null;
     
     // UI components
     const Header = () => (
         <header className="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
-            <div>
+            <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-md -ml-2 p-2 transition-all duration-200"
+                aria-label="Návrat na začiatok stránky"
+            >
                 <h1 className="text-xl md:text-2xl font-bold text-blue-600">Doprava na preteky</h1>
                 <p className="text-slate-600 text-sm md:text-base">Vitaj, {currentUser.name} ({currentUser.role})</p>
-            </div>
+            </button>
             <div className="flex items-center space-x-4">
                 <button
                     onClick={() => setProfileModalOpen(true)}
@@ -231,12 +328,30 @@ const Dashboard: React.FC = () => {
                                 <div className="flex items-center">
                                     <UserAvatar user={user} />
                                     <div>
-                                        <p className="font-semibold">{user.name}</p>
+                                        <p className="font-semibold">{user.name} <span className="text-slate-500 font-normal">{user.mobile}</span></p>
                                         <p className="text-sm text-slate-500">{user.role}{user.role === UserRole.Driver && ` - ${user.car?.type}`}</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    {user.role === UserRole.Driver && <p className="text-sm text-slate-500">{user.car?.seats} miest</p>}
+                                <div className="flex items-center space-x-2">
+                                    {user.role === UserRole.Driver && <p className="text-sm text-slate-500 mr-2">{user.car?.seats} miest</p>}
+                                    {currentUser.role === UserRole.Admin && user.role !== UserRole.Admin && (
+                                        <>
+                                            <button 
+                                                onClick={() => handleOpenUserEditModal(user)} 
+                                                className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-100 transition-colors"
+                                                aria-label={`Upraviť používateľa ${user.name}`}
+                                            >
+                                                <EditIcon className="w-5 h-5" />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteUser(user.id)} 
+                                                className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 transition-colors"
+                                                aria-label={`Zmazať používateľa ${user.name}`}
+                                            >
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </li>
                         ))}
@@ -281,11 +396,22 @@ const Dashboard: React.FC = () => {
             </main>
             {isRideModalOpen && <RideModal ride={editingRide} onClose={handleCloseRideModal} onSave={handleSaveRide} />}
             {isProfileModalOpen && <ProfileModal user={currentUser} onClose={() => setProfileModalOpen(false)} onSavePicture={updateProfilePicture} />}
+            {editingUser && <UserEditModal user={editingUser} onClose={handleCloseUserEditModal} onSave={handleSaveUser} />}
             {rideForDeletion && (
                 <ConfirmationModal
                     title="Potvrdiť zmazanie jazdy"
                     message={`Naozaj chcete natrvalo zmazať jazdu do "${rideForDeletion.destination}"? Táto akcia je nezvratná.`}
-                    onConfirm={handleConfirmDelete}
+                    onConfirm={handleConfirmRideDelete}
+                    onCancel={handleCancelDelete}
+                    confirmText="Áno, zmazať"
+                    cancelText="Zrušiť"
+                />
+            )}
+            {userForDeletion && (
+                 <ConfirmationModal
+                    title="Potvrdiť zmazanie používateľa"
+                    message={`Naozaj chcete natrvalo zmazať používateľa "${userForDeletion.name}"? Týmto sa zrušia aj všetky jeho rezervácie a ponuky na jazdu.`}
+                    onConfirm={handleConfirmUserDelete}
                     onCancel={handleCancelDelete}
                     confirmText="Áno, zmazať"
                     cancelText="Zrušiť"

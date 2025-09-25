@@ -16,6 +16,8 @@ export interface User {
   name: string;
   role: UserRole;
   password?: string;
+  email?: string;
+  mobile?: string;
   car?: Car;
   profilePicture?: string;
 }

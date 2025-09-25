@@ -99,7 +99,10 @@ export const RideCard: React.FC<RideCardProps> = ({
                                             <div className="font-semibold flex justify-between items-center">
                                                 <div className="flex items-center">
                                                     <UserAvatar user={driver} />
-                                                    <span>{driver.name} (<CarIcon className="w-4 h-4 inline mr-1"/>{driver.car.type})</span>
+                                                    <div>
+                                                        <span>{driver.name} (<CarIcon className="w-4 h-4 inline mr-1"/>{driver.car.type})</span>
+                                                        {driver.mobile && <span className="text-xs text-slate-500 block">{driver.mobile}</span>}
+                                                    </div>
                                                 </div>
                                                 <span className={`font-bold px-2 py-1 text-xs rounded-full ${freeSeats > 0 ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
                                                     Voľné: {freeSeats} / {driver.car.seats}
