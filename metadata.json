@@ -1,0 +1,7 @@
+{
+  "name": "Doprava na preteky App",
+  "description": "Jednoduchá aplikácia pre organizovanie dopravy na preteky. Admin vytvára jazdy, vodiči ponúkajú svoje autá a cestujúci si rezervujú miesta.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
